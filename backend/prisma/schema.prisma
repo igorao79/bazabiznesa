@@ -1,0 +1,72 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  username  String   @unique
+  password  String
+  name      String
+  role      String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  assignedRequests Request[]  @relation("AssignedRequests")
+  auditLogs        AuditLog[]
+  comments         Comment[]
+
+  @@map("users")
+}
+
+model Request {
+  id          Int      @id @default(autoincrement())
+  clientName  String   @map("client_name")
+  phone       String
+  address     String
+  problemText String   @map("problem_text")
+  status      String   @default("new")
+  priority    String   @default("normal")
+  assignedTo  Int?     @map("assigned_to")
+  version     Int      @default(0)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  assignedMaster User?      @relation("AssignedRequests", fields: [assignedTo], references: [id])
+  auditLogs      AuditLog[]
+  comments       Comment[]
+
+  @@map("requests")
+}
+
+model AuditLog {
+  id        Int      @id @default(autoincrement())
+  requestId Int      @map("request_id")
+  userId    Int      @map("user_id")
+  action    String
+  oldStatus String?  @map("old_status")
+  newStatus String?  @map("new_status")
+  details   String?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  request Request @relation(fields: [requestId], references: [id])
+  user    User    @relation(fields: [userId], references: [id])
+
+  @@map("audit_logs")
+}
+
+model Comment {
+  id        Int      @id @default(autoincrement())
+  requestId Int      @map("request_id")
+  userId    Int      @map("user_id")
+  text      String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  request Request @relation(fields: [requestId], references: [id])
+  user    User    @relation(fields: [userId], references: [id])
+
+  @@map("comments")
+}

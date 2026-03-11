@@ -209,7 +209,7 @@ export default function DispatcherPanel() {
                       #{req.id}
                     </button>
                     <StatusBadge status={req.status} />
-                    <PriorityBadge priority={req.priority} />
+                    {req.status !== "done" && req.status !== "canceled" && <PriorityBadge priority={req.priority} />}
                   </div>
                   <p className="font-semibold text-slate-800 text-sm">{req.clientName}</p>
                   <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-1 text-xs text-slate-500">

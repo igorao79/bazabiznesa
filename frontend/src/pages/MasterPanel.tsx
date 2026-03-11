@@ -156,7 +156,6 @@ export default function MasterPanel() {
                     #{req.id}
                   </button>
                   <StatusBadge status={req.status} />
-                  <PriorityBadge priority={req.priority} />
                   <span className="text-sm text-slate-600 ml-1">{req.clientName}</span>
                 </div>
               </div>

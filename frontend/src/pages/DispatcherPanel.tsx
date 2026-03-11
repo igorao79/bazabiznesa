@@ -4,6 +4,7 @@ import { RepairRequest, Stats } from "../types";
 import { useToast } from "../context/ToastContext";
 import { StatusBadge, PriorityBadge } from "../components/StatusBadge";
 import RequestDetailModal from "../components/RequestDetailModal";
+import ConfirmModal from "../components/ConfirmModal";
 import {
   Circle, Clock, PlayCircle, CheckCircle2, XCircle,
   Search, RefreshCw, UserPlus, Ban, MapPin, Phone, Inbox, Download,
@@ -68,6 +69,7 @@ export default function DispatcherPanel() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedRequestId, setSelectedRequestId] = useState<number | null>(null);
   const [actionLoading, setActionLoading] = useState<number | null>(null);
+  const [cancelTarget, setCancelTarget] = useState<number | null>(null);
 
   const loadData = async () => {
     try {
@@ -101,7 +103,6 @@ export default function DispatcherPanel() {
   };
 
   const handleCancel = async (requestId: number) => {
-    if (!confirm("Отменить заявку?")) return;
     setActionLoading(requestId);
     try {
       await api.cancelRequest(requestId);
@@ -111,6 +112,7 @@ export default function DispatcherPanel() {
       toast("error", err.message);
     } finally {
       setActionLoading(null);
+      setCancelTarget(null);
     }
   };
 
@@ -249,7 +251,7 @@ export default function DispatcherPanel() {
                   )}
                   {req.status !== "done" && req.status !== "canceled" && (
                     <button
-                      onClick={() => handleCancel(req.id)}
+                      onClick={() => setCancelTarget(req.id)}
                       disabled={actionLoading === req.id}
                       className="btn-danger text-xs py-2"
                     >
@@ -270,6 +272,16 @@ export default function DispatcherPanel() {
           onClose={() => { setSelectedRequestId(null); loadData(); }}
         />
       )}
+
+      <ConfirmModal
+        open={cancelTarget !== null}
+        title="Отменить заявку"
+        message={`Вы уверены, что хотите отменить заявку #${cancelTarget}? Это действие нельзя отменить.`}
+        confirmLabel="Отменить заявку"
+        cancelLabel="Назад"
+        onConfirm={() => cancelTarget && handleCancel(cancelTarget)}
+        onCancel={() => setCancelTarget(null)}
+      />
     </div>
   );
 }

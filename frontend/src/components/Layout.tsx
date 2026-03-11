@@ -99,8 +99,8 @@ export default function Layout({ children, currentPage, onNavigate }: LayoutProp
       {/* Mobile overlay */}
       {sidebarOpen && (
         <div className="fixed inset-0 z-40 lg:hidden">
-          <div className="fixed inset-0 bg-black/30 backdrop-blur-sm" onClick={() => setSidebarOpen(false)} />
-          <aside className="fixed inset-y-0 left-0 z-50 w-72 bg-white shadow-2xl">
+          <div className="fixed inset-0 bg-black/30 backdrop-blur-sm animate-fade-in" onClick={() => setSidebarOpen(false)} />
+          <aside className="fixed inset-y-0 left-0 z-50 w-72 bg-white shadow-2xl animate-sidebar-in">
             {sidebar}
           </aside>
         </div>

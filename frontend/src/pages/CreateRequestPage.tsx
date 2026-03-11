@@ -1,7 +1,25 @@
 import { useState } from "react";
 import { api } from "../api";
 import { Priority } from "../types";
-import { Send, CheckCircle2, AlertCircle, User, Phone, MapPin, FileText } from "lucide-react";
+import { useToast } from "../context/ToastContext";
+import { Send, AlertCircle, User, Phone, MapPin, FileText } from "lucide-react";
+
+type FieldErrors = {
+  clientName?: string;
+  phone?: string;
+  address?: string;
+  problemText?: string;
+};
+
+function FieldError({ message }: { message?: string }) {
+  if (!message) return null;
+  return (
+    <p className="flex items-center gap-1.5 mt-1.5 text-xs text-red-500">
+      <AlertCircle size={12} className="shrink-0" />
+      {message}
+    </p>
+  );
+}
 
 export default function CreateRequestPage() {
   const [form, setForm] = useState({
@@ -11,31 +29,63 @@ export default function CreateRequestPage() {
     problemText: "",
     priority: "normal" as Priority,
   });
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState(false);
+  const { toast } = useToast();
+  const [errors, setErrors] = useState<FieldErrors>({});
+  const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [loading, setLoading] = useState(false);
 
+  const validate = (values: typeof form): FieldErrors => {
+    const e: FieldErrors = {};
+    if (!values.clientName.trim()) e.clientName = "Укажите ФИО клиента";
+    if (!values.phone.trim()) e.phone = "Укажите номер телефона";
+    else if (values.phone.replace(/\D/g, "").length < 7) e.phone = "Номер слишком короткий";
+    if (!values.address.trim()) e.address = "Укажите адрес";
+    if (!values.problemText.trim()) e.problemText = "Опишите проблему";
+    else if (values.problemText.trim().length < 10) e.problemText = "Описание слишком короткое (мин. 10 символов)";
+    return e;
+  };
+
   const handleChange = (field: string, value: string) => {
-    setForm((prev) => ({ ...prev, [field]: value }));
-    setError("");
-    setSuccess(false);
+    const next = { ...form, [field]: value };
+    setForm(next);
+    if (touched[field]) {
+      setErrors((prev) => {
+        const updated = validate(next);
+        return { ...prev, [field]: updated[field as keyof FieldErrors] };
+      });
+    }
+  };
+
+  const handleBlur = (field: string) => {
+    setTouched((prev) => ({ ...prev, [field]: true }));
+    const fieldErrors = validate(form);
+    setErrors((prev) => ({ ...prev, [field]: fieldErrors[field as keyof FieldErrors] }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError("");
-    setSuccess(false);
+    const fieldErrors = validate(form);
+    setErrors(fieldErrors);
+    setTouched({ clientName: true, phone: true, address: true, problemText: true });
+
+    if (Object.keys(fieldErrors).length > 0) return;
+
     setLoading(true);
     try {
       await api.createRequest(form);
-      setSuccess(true);
+      toast("success", "Заявка создана. Она появится в панели диспетчера со статусом «Новая».");
       setForm({ clientName: "", phone: "", address: "", problemText: "", priority: "normal" });
+      setTouched({});
+      setErrors({});
     } catch (err: any) {
-      setError(err.message);
+      toast("error", err.message);
     } finally {
       setLoading(false);
     }
   };
+
+  const fieldClass = (field: keyof FieldErrors) =>
+    `input ${errors[field] && touched[field] ? "border-red-400 ring-2 ring-red-100 focus:ring-red-200 focus:border-red-400" : ""}`;
 
   return (
     <div className="max-w-2xl mx-auto">
@@ -44,21 +94,7 @@ export default function CreateRequestPage() {
         <p className="text-sm text-slate-500 mt-1">Заполните форму для создания заявки в ремонтную службу</p>
       </div>
 
-      {success && (
-        <div className="flex items-center gap-3 bg-emerald-50 text-emerald-700 rounded-xl px-4 py-3 mb-5 ring-1 ring-inset ring-emerald-600/10">
-          <CheckCircle2 size={18} className="shrink-0" />
-          <p className="text-sm">Заявка создана. Она появится в панели диспетчера со статусом «Новая».</p>
-        </div>
-      )}
-
-      {error && (
-        <div className="flex items-center gap-3 bg-red-50 text-red-700 rounded-xl px-4 py-3 mb-5 ring-1 ring-inset ring-red-600/10">
-          <AlertCircle size={18} className="shrink-0" />
-          <p className="text-sm">{error}</p>
-        </div>
-      )}
-
-      <form onSubmit={handleSubmit} className="card p-6 space-y-5">
+      <form onSubmit={handleSubmit} noValidate className="card p-6 space-y-5">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
           <div>
             <label className="label">
@@ -71,10 +107,11 @@ export default function CreateRequestPage() {
               type="text"
               value={form.clientName}
               onChange={(e) => handleChange("clientName", e.target.value)}
-              className="input"
+              onBlur={() => handleBlur("clientName")}
+              className={fieldClass("clientName")}
               placeholder="Иванов Иван Иванович"
-              required
             />
+            <FieldError message={touched.clientName ? errors.clientName : undefined} />
           </div>
 
           <div>
@@ -88,10 +125,11 @@ export default function CreateRequestPage() {
               type="tel"
               value={form.phone}
               onChange={(e) => handleChange("phone", e.target.value)}
-              className="input"
+              onBlur={() => handleBlur("phone")}
+              className={fieldClass("phone")}
               placeholder="+7 (999) 123-45-67"
-              required
             />
+            <FieldError message={touched.phone ? errors.phone : undefined} />
           </div>
         </div>
 
@@ -107,10 +145,11 @@ export default function CreateRequestPage() {
               type="text"
               value={form.address}
               onChange={(e) => handleChange("address", e.target.value)}
-              className="input"
+              onBlur={() => handleBlur("address")}
+              className={fieldClass("address")}
               placeholder="ул. Ленина, д. 10, кв. 5"
-              required
             />
+            <FieldError message={touched.address ? errors.address : undefined} />
           </div>
 
           <div>
@@ -138,11 +177,12 @@ export default function CreateRequestPage() {
           <textarea
             value={form.problemText}
             onChange={(e) => handleChange("problemText", e.target.value)}
+            onBlur={() => handleBlur("problemText")}
             rows={4}
-            className="input resize-y"
+            className={`${fieldClass("problemText")} resize-none`}
             placeholder="Подробно опишите проблему..."
-            required
           />
+          <FieldError message={touched.problemText ? errors.problemText : undefined} />
         </div>
 
         <div className="pt-2">

@@ -2,18 +2,18 @@ import { useState, useEffect } from "react";
 import { api } from "../api";
 import { RepairRequest } from "../types";
 import { useAuth } from "../context/AuthContext";
+import { useToast } from "../context/ToastContext";
 import { StatusBadge, PriorityBadge } from "../components/StatusBadge";
 import RequestDetailModal from "../components/RequestDetailModal";
 import {
   RefreshCw, PlayCircle, CheckCircle2, Phone, MapPin,
-  AlertCircle, Inbox, Archive,
+  Inbox, Archive,
 } from "lucide-react";
 
 export default function MasterPanel() {
   const { user } = useAuth();
+  const { toast } = useToast();
   const [requests, setRequests] = useState<RepairRequest[]>([]);
-  const [error, setError] = useState("");
-  const [successMsg, setSuccessMsg] = useState("");
   const [actionLoading, setActionLoading] = useState<number | null>(null);
   const [selectedRequestId, setSelectedRequestId] = useState<number | null>(null);
 
@@ -22,9 +22,8 @@ export default function MasterPanel() {
     try {
       const reqs = await api.listRequests({ assignedTo: user.id });
       setRequests(reqs);
-      setError("");
     } catch (err: any) {
-      setError(err.message);
+      toast("error", err.message);
     }
   };
 
@@ -32,14 +31,12 @@ export default function MasterPanel() {
 
   const handleTake = async (requestId: number) => {
     setActionLoading(requestId);
-    setError("");
-    setSuccessMsg("");
     try {
       await api.takeInWork(requestId);
-      setSuccessMsg(`Заявка #${requestId} взята в работу`);
+      toast("success", `Заявка #${requestId} взята в работу`);
       loadData();
     } catch (err: any) {
-      setError(err.message);
+      toast("error", err.message);
     } finally {
       setActionLoading(null);
     }
@@ -47,14 +44,12 @@ export default function MasterPanel() {
 
   const handleComplete = async (requestId: number) => {
     setActionLoading(requestId);
-    setError("");
-    setSuccessMsg("");
     try {
       await api.completeRequest(requestId);
-      setSuccessMsg(`Заявка #${requestId} завершена`);
+      toast("success", `Заявка #${requestId} завершена`);
       loadData();
     } catch (err: any) {
-      setError(err.message);
+      toast("error", err.message);
     } finally {
       setActionLoading(null);
     }
@@ -78,22 +73,6 @@ export default function MasterPanel() {
           <span className="hidden sm:inline">Обновить</span>
         </button>
       </div>
-
-      {error && (
-        <div className="flex items-center gap-2 bg-red-50 text-red-700 rounded-xl px-4 py-3 mb-4 text-sm ring-1 ring-inset ring-red-600/10">
-          <AlertCircle size={16} className="shrink-0" />
-          <span className="flex-1">{error}</span>
-          <button onClick={() => setError("")} className="font-medium text-red-500 hover:text-red-700">Закрыть</button>
-        </div>
-      )}
-
-      {successMsg && (
-        <div className="flex items-center gap-2 bg-emerald-50 text-emerald-700 rounded-xl px-4 py-3 mb-4 text-sm ring-1 ring-inset ring-emerald-600/10">
-          <CheckCircle2 size={16} className="shrink-0" />
-          <span className="flex-1">{successMsg}</span>
-          <button onClick={() => setSuccessMsg("")} className="font-medium text-emerald-500 hover:text-emerald-700">Закрыть</button>
-        </div>
-      )}
 
       {/* Active */}
       <div className="flex items-center gap-2 mb-4">

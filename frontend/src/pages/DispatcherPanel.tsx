@@ -1,11 +1,12 @@
 import { useState, useEffect } from "react";
 import { api } from "../api";
-import { RepairRequest, Stats, Status } from "../types";
+import { RepairRequest, Stats } from "../types";
+import { useToast } from "../context/ToastContext";
 import { StatusBadge, PriorityBadge } from "../components/StatusBadge";
 import RequestDetailModal from "../components/RequestDetailModal";
 import {
   Circle, Clock, PlayCircle, CheckCircle2, XCircle,
-  Search, RefreshCw, UserPlus, Ban, MapPin, Phone, AlertCircle, Inbox,
+  Search, RefreshCw, UserPlus, Ban, MapPin, Phone, Inbox, Download,
 } from "lucide-react";
 
 const statusOptions: { value: string; label: string }[] = [
@@ -17,6 +18,14 @@ const statusOptions: { value: string; label: string }[] = [
   { value: "canceled", label: "Отменённые" },
 ];
 
+const statusLabels: Record<string, string> = {
+  new: "Новая", assigned: "Назначена", in_progress: "В работе", done: "Завершена", canceled: "Отменена",
+};
+
+const priorityLabels: Record<string, string> = {
+  low: "Низкий", normal: "Обычный", high: "Высокий", urgent: "Срочный",
+};
+
 const statCards = [
   { key: "new", label: "Новые", icon: Circle, color: "text-sky-600", bg: "bg-sky-50" },
   { key: "assigned", label: "Назначенные", icon: Clock, color: "text-amber-600", bg: "bg-amber-50" },
@@ -25,14 +34,39 @@ const statCards = [
   { key: "canceled", label: "Отменённые", icon: XCircle, color: "text-slate-400", bg: "bg-slate-100" },
 ];
 
+function exportToCsv(requests: RepairRequest[]) {
+  const header = ["ID", "Статус", "Приоритет", "ФИО клиента", "Телефон", "Адрес", "Описание", "Мастер", "Создана"];
+  const rows = requests.map((r) => [
+    r.id,
+    statusLabels[r.status] || r.status,
+    priorityLabels[r.priority] || r.priority,
+    r.clientName,
+    r.phone,
+    r.address,
+    r.problemText.replace(/"/g, '""'),
+    r.assignedMaster?.name || "",
+    new Date(r.createdAt).toLocaleString("ru-RU"),
+  ]);
+
+  const bom = "\uFEFF";
+  const csv = bom + [header, ...rows].map((row) => row.map((c) => `"${c}"`).join(";")).join("\n");
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `zayvki_${new Date().toISOString().slice(0, 10)}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 export default function DispatcherPanel() {
+  const { toast } = useToast();
   const [requests, setRequests] = useState<RepairRequest[]>([]);
   const [stats, setStats] = useState<Stats | null>(null);
   const [masters, setMasters] = useState<{ id: number; name: string }[]>([]);
   const [statusFilter, setStatusFilter] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedRequestId, setSelectedRequestId] = useState<number | null>(null);
-  const [error, setError] = useState("");
   const [actionLoading, setActionLoading] = useState<number | null>(null);
 
   const loadData = async () => {
@@ -46,9 +80,8 @@ export default function DispatcherPanel() {
       setRequests(reqs);
       setStats(statsData);
       setMasters(mastersData);
-      setError("");
     } catch (err: any) {
-      setError(err.message);
+      toast("error", err.message);
     }
   };
 
@@ -56,17 +89,38 @@ export default function DispatcherPanel() {
 
   const handleAssign = async (requestId: number, masterId: number) => {
     setActionLoading(requestId);
-    try { await api.assignMaster(requestId, masterId); loadData(); }
-    catch (err: any) { setError(err.message); }
-    finally { setActionLoading(null); }
+    try {
+      await api.assignMaster(requestId, masterId);
+      toast("success", `Мастер назначен на заявку #${requestId}`);
+      loadData();
+    } catch (err: any) {
+      toast("error", err.message);
+    } finally {
+      setActionLoading(null);
+    }
   };
 
   const handleCancel = async (requestId: number) => {
     if (!confirm("Отменить заявку?")) return;
     setActionLoading(requestId);
-    try { await api.cancelRequest(requestId); loadData(); }
-    catch (err: any) { setError(err.message); }
-    finally { setActionLoading(null); }
+    try {
+      await api.cancelRequest(requestId);
+      toast("info", `Заявка #${requestId} отменена`);
+      loadData();
+    } catch (err: any) {
+      toast("error", err.message);
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleExport = () => {
+    if (requests.length === 0) {
+      toast("info", "Нет заявок для экспорта");
+      return;
+    }
+    exportToCsv(requests);
+    toast("success", `Экспортировано ${requests.length} заявок`);
   };
 
   const formatDate = (d: string) =>
@@ -79,10 +133,16 @@ export default function DispatcherPanel() {
           <h1 className="text-xl font-bold text-slate-900">Панель диспетчера</h1>
           <p className="text-sm text-slate-500 mt-0.5">Управление заявками и назначение мастеров</p>
         </div>
-        <button onClick={loadData} className="btn-secondary hidden sm:flex">
-          <RefreshCw size={15} />
-          Обновить
-        </button>
+        <div className="flex gap-2">
+          <button onClick={handleExport} className="btn-secondary hidden sm:flex" title="Экспорт в CSV">
+            <Download size={15} />
+            CSV
+          </button>
+          <button onClick={loadData} className="btn-secondary hidden sm:flex">
+            <RefreshCw size={15} />
+            Обновить
+          </button>
+        </div>
       </div>
 
       {/* Stats */}
@@ -106,14 +166,6 @@ export default function DispatcherPanel() {
               </button>
             );
           })}
-        </div>
-      )}
-
-      {error && (
-        <div className="flex items-center gap-2 bg-red-50 text-red-700 rounded-xl px-4 py-3 mb-4 text-sm ring-1 ring-inset ring-red-600/10">
-          <AlertCircle size={16} className="shrink-0" />
-          <span className="flex-1">{error}</span>
-          <button onClick={() => setError("")} className="text-red-500 hover:text-red-700 font-medium">Закрыть</button>
         </div>
       )}
 

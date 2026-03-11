@@ -1,0 +1,14 @@
+{
+  "name": "repair-service",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "install:all": "cd backend && npm install && cd ../frontend && npm install",
+    "build:frontend": "cd frontend && npm run build",
+    "build:backend": "cd backend && npx prisma generate && npm run build",
+    "build": "npm run build:frontend && npm run build:backend",
+    "start": "cd backend && npx prisma migrate deploy && npx tsx prisma/seed.ts && node dist/index.js",
+    "render:build": "npm run install:all && npm run build",
+    "render:start": "npm run start"
+  }
+}

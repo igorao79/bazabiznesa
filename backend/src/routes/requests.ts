@@ -1,5 +1,4 @@
 import { Router, Request, Response, NextFunction } from "express";
-import { Status } from "@prisma/client";
 import { authMiddleware, requireRole } from "../middleware/auth";
 import * as requestService from "../services/requestService";
 import prisma from "../lib/prisma";
@@ -22,7 +21,7 @@ router.get("/", authMiddleware, async (req: Request, res: Response, next: NextFu
   try {
     const { status, assignedTo, search } = req.query;
     const requests = await requestService.listRequests({
-      status: status as Status | undefined,
+      status: status as string | undefined,
       assignedTo: assignedTo ? Number(assignedTo) : undefined,
       search: search as string | undefined,
     });

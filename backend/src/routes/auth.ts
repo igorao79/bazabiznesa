@@ -21,7 +21,7 @@ router.post("/login", async (req: Request, res: Response, next: NextFunction) =>
       id: user.id,
       username: user.username,
       name: user.name,
-      role: user.role,
+      role: user.role as "dispatcher" | "master",
     });
 
     res.json({

@@ -64,6 +64,7 @@ export async function listRequests(filter: ListRequestsFilter) {
     },
     orderBy: [
       { createdAt: "desc" },
+      { id: "desc" },
     ],
   });
 }

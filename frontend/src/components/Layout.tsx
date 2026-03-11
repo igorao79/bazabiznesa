@@ -27,7 +27,7 @@ export default function Layout({ children, currentPage, onNavigate }: LayoutProp
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const navItems = [
-    { key: "create", label: "Новая заявка", icon: FilePlus, show: true },
+    { key: "create", label: "Новая заявка", icon: FilePlus, show: user?.role === "dispatcher" },
     { key: "dispatcher", label: "Панель диспетчера", icon: LayoutDashboard, show: user?.role === "dispatcher" },
     { key: "master", label: "Мои заявки", icon: ClipboardList, show: user?.role === "master" },
   ].filter((i) => i.show);

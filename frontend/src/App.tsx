@@ -22,15 +22,17 @@ export default function App() {
     return <LoginPage />;
   }
 
-  // Default page based on role
-  const currentPage = page === "create" ? "create" :
+  // Default page based on role; master cannot access create
+  const defaultPage = user.role === "dispatcher" ? "create" : "master";
+  const currentPage =
+    page === "create" && user.role === "dispatcher" ? "create" :
     page === "dispatcher" && user.role === "dispatcher" ? "dispatcher" :
     page === "master" && user.role === "master" ? "master" :
-    user.role === "dispatcher" ? "dispatcher" : "master";
+    defaultPage;
 
   return (
     <Layout currentPage={currentPage} onNavigate={setPage}>
-      {currentPage === "create" && <CreateRequestPage />}
+      {currentPage === "create" && user.role === "dispatcher" && <CreateRequestPage />}
       {currentPage === "dispatcher" && <DispatcherPanel />}
       {currentPage === "master" && <MasterPanel />}
     </Layout>

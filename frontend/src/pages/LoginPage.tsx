@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useAuth } from "../context/AuthContext";
-import { Wrench, LogIn, LayoutDashboard, HardHat, AlertCircle, ChevronRight } from "lucide-react";
+import { Wrench, LayoutDashboard, HardHat, AlertCircle, ChevronRight } from "lucide-react";
 
 const quickAccounts = [
   { user: "dispatcher", pass: "dispatcher123", label: "Диспетчер", name: "Иванова Мария Петровна", icon: LayoutDashboard, color: "text-indigo-600 bg-indigo-50" },
@@ -10,23 +10,8 @@ const quickAccounts = [
 
 export default function LoginPage() {
   const { login } = useAuth();
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError("");
-    setLoading(true);
-    try {
-      await login(username, password);
-    } catch (err: any) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const quickLogin = async (user: string, pass: string) => {
     setError("");
@@ -58,47 +43,17 @@ export default function LoginPage() {
           <p className="text-slate-500 mt-1 text-sm">Система управления заявками</p>
         </div>
 
-        {/* Login form */}
-        <div className="card p-6 sm:p-8 mb-4">
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="label">Логин</label>
-              <input
-                type="text"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                className="input"
-                placeholder="Введите логин"
-              />
+        {/* Test accounts */}
+        <div className="card p-5 sm:p-6">
+          <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Выберите аккаунт</p>
+
+          {error && (
+            <div className="flex items-center gap-2 bg-red-50 text-red-700 rounded-xl px-4 py-3 text-sm ring-1 ring-inset ring-red-600/10 mb-3">
+              <AlertCircle size={16} className="shrink-0" />
+              {error}
             </div>
-            <div>
-              <label className="label">Пароль</label>
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="input"
-                placeholder="Введите пароль"
-              />
-            </div>
+          )}
 
-            {error && (
-              <div className="flex items-center gap-2 bg-red-50 text-red-700 rounded-xl px-4 py-3 text-sm ring-1 ring-inset ring-red-600/10">
-                <AlertCircle size={16} className="shrink-0" />
-                {error}
-              </div>
-            )}
-
-            <button type="submit" disabled={loading} className="btn-primary w-full">
-              <LogIn size={16} />
-              {loading ? "Вход..." : "Войти"}
-            </button>
-          </form>
-        </div>
-
-        {/* Quick access */}
-        <div className="card p-5">
-          <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Тестовые аккаунты</p>
           <div className="space-y-2">
             {quickAccounts.map((acc) => {
               const Icon = acc.icon;
